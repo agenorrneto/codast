@@ -67,7 +67,6 @@ def main() -> None:
 
     print("Initializing")
 
-
     final_result = integrator(f"{args.genomic_coordinates[0]}")
     final_result.to_csv(Path(f"{args.output_directory[0]}","gerp_integration.csv"))
 
