@@ -8,6 +8,22 @@ import os
 from Bio.PDB.DSSP import make_dssp_dict
 import time
 
+RES_MAX_ACC = {'A': 129.0, 'R': 274.0, 'N': 195.0, 'D': 193.0, \
+               'C': 167.0, 'Q': 225.0, 'E': 223.0, 'G': 104.0, \
+               'H': 224.0, 'I': 197.0, 'L': 201.0, 'K': 236.0, \
+               'M': 224.0, 'F': 240.0, 'P': 159.0, 'S': 155.0, \
+               'T': 172.0, 'W': 285.0, 'Y': 263.0, 'V': 174.0}
+
+SS_MAP = {"H": "H",
+"B": "B",
+ "E":"B",
+ "G":"H",
+ "I":"H",
+ "P":"H",
+ "T":"C",
+ "S": "B",
+ "-": "C"}
+
 
 def download_af_model(uniprot_id, output_dir):
     # Variables for API
@@ -114,12 +130,12 @@ def integrator_3d(data, raw):
     """
     Docstring for integrator_3d
     """
-    ss_list = []
+    class_3d_list = []
     df = pd.read_csv(data)
 
     for uid in df["uniprot_id"]:
         # Downloading AlphaFold for each protein
-        download_af_model(id, output_dir=raw)
+        download_af_model(uid, output_dir=raw)
 
         # Checking the existence of the AlphaFold model and running DSSP
         af_file = f'AF-{uid}-F1-model_v6.cif'
@@ -140,29 +156,49 @@ def integrator_3d(data, raw):
         aa_start = int(df.iloc[i]["aa_start"])
         aa_end = int(df.iloc[i]["aa_end"])
 
-        info_3d = process_dssp(f"./threed_data/AF-{id}-F1-model_v6.cif.dssp")
+        info_3d = process_dssp(f"{raw}/AF-{id}-F1-model_v6.cif.dssp")
 
         try:
-            info_3d[aa_start - 1:aa_end]["ACC"]
-            ss_list.append(pd.DataFrame(info_3d[aa_start - 1:aa_end], index=[0]))
+            domain_3d_data = pd.DataFrame(info_3d[aa_start - 1:aa_end])
+            domain_3d_data = domain_3d_data[['residue', 'AA', 'SS', 'ACC']]
+
+            domain_3d_data["max_acc"] = domain_3d_data["AA"].map(RES_MAX_ACC)
+            domain_3d_data["rsa"] = domain_3d_data["ACC"] / domain_3d_data["max_acc"]
+            domain_3d_data["ss_3class"] = domain_3d_data["SS"].map(SS_MAP)
+            domain_3d_data["burial_status"] = np.where(domain_3d_data["rsa"] > 0.25, "E", "B")
+
+            proportions_rsa = domain_3d_data.burial_status.value_counts(normalize=True)
+            proportions_ss = domain_3d_data.ss_3class.value_counts(normalize=True)
+
+            if proportions_rsa.max() >= 0.7:
+                dominant_burial_status = proportions_rsa.idxmax()
+            else:
+                dominant_burial_status = "MEB" # Mixed Exposed/Buried
+            
+            if proportions_ss.max() >= 0.7:
+                dominant_ss = proportions_ss.idxmax()
+            else:
+                dominant_ss = "MSS" # Mixed Secondary Structure
+
+            class_3d_list.append({
+                'dominant_burial_status': dominant_burial_status,
+                'dominant_ss': dominant_ss
+            })
+
         except IndexError:
             print(f'IndexError: {aa_start} to {aa_end} is out of range of {id} model (range: {len(info_3d)})')
-            oof_row = []
-            oof_row.append({
-                'chain': np.nan,
-                'residue': "oor",
-                'AA': "oor",
-                'SS': "oor",
-                'ACC': "oor"
+
+            class_3d_list.append({
+                'dominant_burial_status': "out of range",
+                'dominant_ss': "out of range"
             })
-            ss_list.append(pd.DataFrame(oof_row[0], index=[0]))
 
     
-    ss_df = pd.concat(ss_list)
+    class_3d_df = pd.DataFrame(class_3d_list)
 
-    ss_df = ss_df.reset_index()
-    print(ss_df)
-    final_df = pd.concat([df, ss_df], axis=1)
+    class_3d_df = class_3d_df.reset_index()
+    print(class_3d_df)
+    final_df = pd.concat([df, class_3d_df], axis=1)
 
     return final_df
 
@@ -178,7 +214,7 @@ def init_argparser():
         description='Integrating 3D data for protein domains', 
     )
 
-    parser.add_argument('-mapping', '--mapping_result')
+    parser.add_argument('-gc', '--genomic_coordinates')
     parser.add_argument('-out_dir', '--output_directory')
     parser.add_argument('-raw_dir', '--rawdata_directory')
 
@@ -195,9 +231,9 @@ def main() -> None:
 
     print("Initializing")
 
-    threed_df = integrator_3d(f"./output/{args.mapping_result}", 
-                            raw=f"./{args.rawdata_directory}")
-    threed_df.to_csv(Path(f"{args.output_directory}","phenotype_mapped_ccrs_3d.csv"))
+    threed_df = integrator_3d(f"{args.genomic_coordinates}", 
+                            raw=f"{args.rawdata_directory}")
+    threed_df.to_csv(Path(f"{args.output_directory}","domain_3d_metrics.csv"))
 
 
 if __name__ == '__main__':
