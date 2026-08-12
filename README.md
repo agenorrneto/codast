@@ -36,7 +36,7 @@ This script's output file can used as an input to the other scripts. We propose 
 | Interspecies constraint  | GERP++, ConSurf |
 | 3D data  | RSA, secondary structure |
 
-In `notebooks/ccrs_integration.ipynb`, you can find the codes for integration and analysis of CCR (constrained coding regions) and gnomAD contraint metrics and the domain genomic coordinates. We plan to automatize this step.
+In `notebooks/covid_infection_integration_gnomad_metrics.ipynb`, you can find the codes for integration and analysis of CCR (constrained coding regions) and gnomAD contraint metrics and the domain genomic coordinates (in this examples for the phenotype Sars-CoV-2 infection). We plan to automatize this step.
 
 `scripts/gerp_metrics_integrator.py` is intended for integration with GERP++ data. You can use it with:
 
