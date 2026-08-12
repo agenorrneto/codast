@@ -27,7 +27,7 @@ InterProSCan result
 
 SERVER = "https://www.ebi.ac.uk/proteins/api"
 EXT_BASIS = "/coordinates/location/"
-MANE = pd.read_csv("MANE.GRCh38.v1.4.summary.txt", sep ="\t", header=0)
+MANE = pd.read_csv("/home/agenor/phd/projeto/MANE.GRCh38.v1.4.summary.txt", sep ="\t", header=0)
 
 def filter_domain(protein_list, database):
     """
@@ -47,7 +47,7 @@ def gcoord_translator(ip_result, out_directory):
     """
     results = []
 
-    for i in tqdm(range(len(ip_result)), desc="Porcessing rows"):
+    for i in tqdm(range(len(ip_result)), desc="Processing rows"):
         try:
             ensembl_id = ip_result.iloc[i][0].replace("9606.", "")
             domain_annottation = str(ip_result.iloc[i][12])
@@ -100,6 +100,9 @@ def gcoord_translator(ip_result, out_directory):
                         "gene_lenght": gene_range,
                         "gene_star": gene_start,
                         "gene_end": gene_end,
+                        "domain_start": domain_range[0],
+                        "domain_end": domain_range[1],
+                        "pfam_domain": ip_result.iloc[i][4],
                         "domain_range_nt": domain_range_nt,
                         "dom_gene_ratio": dom_gene_ratio,
                         "domain_annotations": domain_annottation
@@ -152,7 +155,7 @@ def main() -> None:
                              f"{args.database[0]}")
     final_result = gcoord_translator(filtered, 
                               f"{args.output_directory[0]}")
-    final_result.to_csv(Path(f"{args.output_directory[0]}","genomic_coordinates_batch4.csv"))
+    final_result.to_csv(Path(f"{args.output_directory[0]}","genomic_coordinates_batch_2.csv"))
 
 
 if __name__ == '__main__':

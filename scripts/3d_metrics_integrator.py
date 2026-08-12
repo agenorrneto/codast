@@ -121,7 +121,6 @@ def process_dssp(file_path):
                 'SS': "",
                 'ACC': ""
             })
-        
 
     return parsed_data
 
@@ -153,37 +152,44 @@ def integrator_3d(data, raw):
 
     for i in range(len(df)):
         id = df.iloc[i]["uniprot_id"]
-        aa_start = int(df.iloc[i]["aa_start"])
-        aa_end = int(df.iloc[i]["aa_end"])
+        aa_start = int(df.iloc[i]["domain_start"])
+        aa_end = int(df.iloc[i]["domain_end"])
 
         info_3d = process_dssp(f"{raw}/AF-{id}-F1-model_v6.cif.dssp")
 
         try:
             domain_3d_data = pd.DataFrame(info_3d[aa_start - 1:aa_end])
-            domain_3d_data = domain_3d_data[['residue', 'AA', 'SS', 'ACC']]
-
-            domain_3d_data["max_acc"] = domain_3d_data["AA"].map(RES_MAX_ACC)
-            domain_3d_data["rsa"] = domain_3d_data["ACC"] / domain_3d_data["max_acc"]
-            domain_3d_data["ss_3class"] = domain_3d_data["SS"].map(SS_MAP)
-            domain_3d_data["burial_status"] = np.where(domain_3d_data["rsa"] > 0.25, "E", "B")
-
-            proportions_rsa = domain_3d_data.burial_status.value_counts(normalize=True)
-            proportions_ss = domain_3d_data.ss_3class.value_counts(normalize=True)
-
-            if proportions_rsa.max() >= 0.7:
-                dominant_burial_status = proportions_rsa.idxmax()
+            if domain_3d_data.empty:
+                print(f"No data for {id} from {aa_start} to {aa_end}")
+                class_3d_list.append({
+                    'dominant_burial_status': "no data",
+                    'dominant_ss': "no data"
+                })
             else:
-                dominant_burial_status = "MEB" # Mixed Exposed/Buried
-            
-            if proportions_ss.max() >= 0.7:
-                dominant_ss = proportions_ss.idxmax()
-            else:
-                dominant_ss = "MSS" # Mixed Secondary Structure
+                domain_3d_data = domain_3d_data[['residue', 'AA', 'SS', 'ACC']]
 
-            class_3d_list.append({
-                'dominant_burial_status': dominant_burial_status,
-                'dominant_ss': dominant_ss
-            })
+                domain_3d_data["max_acc"] = domain_3d_data["AA"].map(RES_MAX_ACC)
+                domain_3d_data["rsa"] = domain_3d_data["ACC"] / domain_3d_data["max_acc"]
+                domain_3d_data["ss_3class"] = domain_3d_data["SS"].map(SS_MAP)
+                domain_3d_data["burial_status"] = np.where(domain_3d_data["rsa"] > 0.25, "Exp", "Bur")
+
+                proportions_rsa = domain_3d_data.burial_status.value_counts(normalize=True)
+                proportions_ss = domain_3d_data.ss_3class.value_counts(normalize=True)
+
+                if proportions_rsa.max() >= 0.7:
+                    dominant_burial_status = proportions_rsa.idxmax()
+                else:
+                    dominant_burial_status = "MEB" # Mixed Exposed/Buried
+                
+                if proportions_ss.max() >= 0.7:
+                    dominant_ss = proportions_ss.idxmax()
+                else:
+                    dominant_ss = "MSS" # Mixed Secondary Structure
+
+                class_3d_list.append({
+                    'dominant_burial_status': dominant_burial_status,
+                    'dominant_ss': dominant_ss
+                })
 
         except IndexError:
             print(f'IndexError: {aa_start} to {aa_end} is out of range of {id} model (range: {len(info_3d)})')
@@ -233,7 +239,7 @@ def main() -> None:
 
     threed_df = integrator_3d(f"{args.genomic_coordinates}", 
                             raw=f"{args.rawdata_directory}")
-    threed_df.to_csv(Path(f"{args.output_directory}","domain_3d_metrics.csv"))
+    threed_df.to_csv(Path(f"{args.output_directory}","integration_3d_metrics.csv"))
 
 
 if __name__ == '__main__':

@@ -41,21 +41,31 @@ In `notebooks/ccrs_integration.ipynb`, you can find the codes for integration an
 `scripts/gerp_metrics_integrator.py` is intended for integration with GERP++ data. You can use it with:
 
 ```
-python3 gcoord_translator.py -gc [Protein domain genomic coordinates] \
+python3 gerp_metrics_integrator.py  -gc [Protein domain genomic coordinates] \
                              -out_dir [Directory for output]    
 ```
 
 `scripts/3d_metrics_integrator.py` is intended for integration with three-dimensional data. You can use it with:
 ```
-python3 gcoord_translator.py -gc [Protein domain genomic coordinates] \
-                             -out_dir [Directory for output]    
+python3 3d_metrics_integrator.py -gc [Protein domain genomic coordinates] \
+                             -out_dir [Directory for output]  \
+                             -raw_dir  [Directory for 3D raw data] 
 ```
 ### Association Test
 
-Our framework uses [rvtest]() to perform rare variant association test. The biological unit proposed in the tests is the domain. 
+Our framework uses [rvtest](https://github.com/zhanxw/rvtests) to perform rare variant association test. The biological unit proposed in the tests is the domain. 
 The data generated in the previous test will be used to classify the domains and help in the interpretation of results. We are still studying how to make this classification and integrate in a better way this data into the tests.
 
+# Open Sources
 
+This framework is currently being built and tested based on open-source sofwatres and databases:
+- InterPro website (freely available under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication)
+- InterProScan software (distributed under the open source Apache License)
+- EMBL-EBI data (resources use the institute’s Terms of Use, which express commitments to open science)
+- Ensembl data (it has no restriction on access to data)
+- AlphaFold data (under CC-BY-4.0 license)
+- [CCRs coordinates](https://github.com/marciaah/CCRStoAAC/tree/main?tab=readme-ov-file) kindly provided by Hasenahuer and collaborators
 
 ## 💭 Feedback and Contributing
+Please, feel free to give suggestions and/or feedbacks to this project. You can e-mail me at agenorneto [at] usp [dot] br
 
